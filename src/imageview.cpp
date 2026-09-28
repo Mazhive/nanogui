@@ -16,6 +16,7 @@
 #include <nanogui/screen.h>
 #include <nanogui/theme.h>
 #include <cmath>
+#include <cassert>
 
 NAMESPACE_BEGIN(nanogui)
 
@@ -128,7 +129,7 @@ void ImageView::fit() {
 }
 
 void ImageView::setScaleCentered(float scale) {
-    auto centerPosition = sizeF() / 2;
+    auto centerPosition = sizeF() / 2.0f;
     auto p = imageCoordinateAt(centerPosition);
     mScale = scale;
     setImageCoordinateAt(centerPosition, p);

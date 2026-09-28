@@ -29,6 +29,9 @@
 #  define GLFW_EXPOSE_NATIVE_WGL
 #  define GLFW_EXPOSE_NATIVE_WIN32
 #  include <GLFW/glfw3native.h>
+#elif defined(__linux__)
+#  define GLFW_EXPOSE_NATIVE_X11
+#  include <GLFW/glfw3native.h>
 #endif
 
 /* Allow enforcing the GL2 implementation of NanoVG */
@@ -328,9 +331,12 @@ void Screen::setVisible(bool visible) {
     if (mVisible != visible) {
         mVisible = visible;
 
-        if (visible)
+        if (visible) {
             glfwShowWindow(mGLFWWindow);
-        else
+            glfwPollEvents(); // Process the map request
+            // Give X server time to map the window
+            glfwWaitEventsTimeout(0.1);
+        } else
             glfwHideWindow(mGLFWWindow);
     }
 }
@@ -372,8 +378,8 @@ void Screen::drawWidgets() {
     glfwGetWindowSize(mGLFWWindow, &mSize[0], &mSize[1]);
 
 #if defined(_WIN32) || defined(__linux__)
-    mSize = (mSize / mPixelRatio).cast<int>();
-    mFBSize = (mSize * mPixelRatio).cast<int>();
+    mSize = (mSize.cast<float>() / mPixelRatio).cast<int>();
+    mFBSize = (mSize.cast<float>() * mPixelRatio).cast<int>();
 #else
     /* Recompute pixel ratio on OSX */
     if (mSize[0])

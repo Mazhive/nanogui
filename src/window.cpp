@@ -157,7 +157,7 @@ bool Window::mouseDragEvent(const Vector2i &, const Vector2i &rel,
     if (mDrag && (button & (1 << GLFW_MOUSE_BUTTON_1)) != 0) {
         mPos += rel;
         mPos = mPos.cwiseMax(Vector2i::Zero());
-        mPos = mPos.cwiseMin(parent()->size() - mSize);
+        mPos = mPos.cwiseMin((parent()->size().cast<float>() - mSize.cast<float>()).cast<int>());
         return true;
     }
     return false;

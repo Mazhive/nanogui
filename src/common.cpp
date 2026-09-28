@@ -25,6 +25,8 @@
     #include <locale.h>
     #include <signal.h>
     #include <sys/dir.h>
+    #include <cstdlib>
+    #include <cstring>
 #endif
 
 NAMESPACE_BEGIN(nanogui)
@@ -44,6 +46,11 @@ void init() {
             std::cerr << "GLFW error " << error << ": " << descr << std::endl;
         }
     );
+
+    #if defined(__linux__)
+        /* Force X11 backend on Linux to avoid Wayland issues */
+        glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+    #endif
 
     if (!glfwInit())
         throw std::runtime_error("Could not initialize GLFW!");
@@ -248,16 +255,51 @@ std::string file_dialog(const std::vector<std::pair<std::string, std::string>> &
     return std::string(ofn.lpstrFile);
 #else
     char buffer[FILE_DIALOG_MAX_BUFFER];
-    std::string cmd = "/usr/bin/zenity --file-selection ";
-    if (save)
-        cmd += "--save ";
-    cmd += "--file-filter=\"";
-    for (auto pair: filetypes)
-        cmd += "\"*." + pair.first +  "\" ";
-    cmd += "\"";
+    
+    // Detect KDE Plasma desktop
+    bool isKDE = false;
+    const char* xdgDesktop = getenv("XDG_CURRENT_DESKTOP");
+    const char* kdeSession = getenv("KDE_FULL_SESSION");
+    const char* desktopSession = getenv("DESKTOP_SESSION");
+    if (xdgDesktop && (strstr(xdgDesktop, "KDE") || strstr(xdgDesktop, "kde")))
+        isKDE = true;
+    else if (kdeSession && strcmp(kdeSession, "true") == 0)
+        isKDE = true;
+    else if (desktopSession && (strstr(desktopSession, "kde") || strstr(desktopSession, "plasma")))
+        isKDE = true;
+
+    std::string cmd;
+    
+    if (isKDE) {
+        // Use kdialog on KDE Plasma
+        cmd = "kdialog ";
+        if (save)
+            cmd += "--getsavefilename ";
+        else
+            cmd += "--getopenfilename ";
+        cmd += "\"$HOME\" ";
+        cmd += "\"";
+        for (auto pair: filetypes) {
+            cmd += "*." + pair.first + " ";
+        }
+        cmd += "\" ";
+        cmd += "--title \"";
+        cmd += save ? "Save Mesh" : "Open Mesh";
+        cmd += "\"";
+    } else {
+        // Use zenity (original code)
+        cmd = "/usr/bin/zenity --file-selection ";
+        if (save)
+            cmd += "--save ";
+        cmd += "--file-filter=\"";
+        for (auto pair: filetypes)
+            cmd += "\"*." + pair.first +  "\" ";
+        cmd += "\"";
+    }
+    
     FILE *output = popen(cmd.c_str(), "r");
     if (output == nullptr)
-        throw std::runtime_error("popen() failed -- could not launch zenity!");
+        throw std::runtime_error("popen() failed -- could not launch file dialog!");
     while (fgets(buffer, FILE_DIALOG_MAX_BUFFER, output) != NULL)
         ;
     pclose(output);
