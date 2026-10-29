@@ -45,6 +45,9 @@ string(TOUPPER "${CMAKE_BUILD_TYPE}" U_CMAKE_BUILD_TYPE)
 
 # Use system GLFW
 find_package(glfw3 3.3 REQUIRED)
+if (NOT GLFW_INCLUDE_DIRS AND TARGET glfw)
+  get_target_property(GLFW_INCLUDE_DIRS glfw INTERFACE_INCLUDE_DIRECTORIES)
+endif()
 
 # Python support: add NANOGUI_PYTHON flag to all targets
 if (NANOGUI_BUILD_PYTHON)
@@ -142,11 +145,16 @@ list(APPEND NANOGUI_EXTRA_INCS
   "${CMAKE_CURRENT_SOURCE_DIR}/ext/nanovg/src"
 )
 
-# Use system Eigen3 - find_package doesn't set EIGEN3_INCLUDE_DIR, so set it manually
+# Use system Eigen3 (find_package exports the Eigen3::Eigen target)
 find_package(Eigen3 3.4 REQUIRED)
-set(EIGEN3_INCLUDE_DIR "/usr/include/eigen3")
-set(NANOGUI_EIGEN_INCLUDE_DIR "/usr/include/eigen3")
-list(APPEND NANOGUI_EXTRA_INCS "${EIGEN3_INCLUDE_DIR}")
+set(NANOGUI_EIGEN_INCLUDE_DIR "")
+if (TARGET Eigen3::Eigen)
+  get_target_property(NANOGUI_EIGEN_INCLUDE_DIR Eigen3::Eigen INTERFACE_INCLUDE_DIRECTORIES)
+endif()
+if (NOT NANOGUI_EIGEN_INCLUDE_DIR OR NOT EXISTS "${NANOGUI_EIGEN_INCLUDE_DIR}/Eigen/Core")
+  set(NANOGUI_EIGEN_INCLUDE_DIR "${EIGEN3_INCLUDE_DIR}")
+endif()
+list(APPEND NANOGUI_EXTRA_INCS "${NANOGUI_EIGEN_INCLUDE_DIR}")
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "BSD")
   include_directories(/usr/local/include)
