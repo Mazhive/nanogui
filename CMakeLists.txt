@@ -213,7 +213,7 @@ if (APPLE OR CMAKE_SYSTEM MATCHES "Linux")
   list(APPEND LIBNANOGUI_PYTHON_EXTRA_SOURCE ext/coro/coro.c)
 endif()
 
-add_compile_definitions(${NANOGUI_EXTRA_DEFS})
+add_definitions(${NANOGUI_EXTRA_DEFS})
 
 # Compile main NanoGUI library
 add_library(nanogui-obj OBJECT
